@@ -16,7 +16,6 @@ Known issues
 ------------
 
 * Loading and saving to server is faulty
-* Unique ID will not correctly populate itself after a server load
 
 TODO list
 ---------

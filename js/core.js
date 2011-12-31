@@ -1,5 +1,12 @@
 $(function() {
-	var methods = {
+	var flux = {
+		/**
+		* Handle to the main flux container
+		* @var object
+		* @access private
+		*/
+		master: 0,
+
 		/**
 		* Unique ID generator
 		* @var int
@@ -21,13 +28,6 @@ $(function() {
 		edititem: 0,
 
 		/**
-		* Handle to the main flux container
-		* @var object
-		* @access private
-		*/
-		master: 0,
-
-		/**
 		* Options storage hash
 		* @var array
 		* @access private
@@ -38,66 +38,67 @@ $(function() {
 		* Initalize Flux
 		*/
 		init: function(options) {
-			methods['options'] = $.extend({
+			flux['options'] = $.extend({
+				idprefix: 'flux-', // What prefix to use when randomly generating IDs
 				server: 'php/file.php',
 				server_refresh: 0 // How often should data be loaded? Set to 0 to disable
 			}, options);
 
-			methods['master'] = this;
-			methods['menus'] = { // Set up menus
+			flux['master'] = this;
+			flux['menus'] = { // Set up menus
 				options: {theme:'human'},
 				item: [
-					{'Edit':{icon: 'images/menus/edit.png', onclick: methods['edit']}},
-					{'Add sub-item':{icon: 'images/menus/add-child.png', onclick: function() { methods['add'](this.id, '', {position: 'under', edit: 1}); }}},
-					{'Add next':{icon: 'images/menus/add-sibling.png', onclick: function() { methods['add'](this.id, '', {position: 'after', edit: 1}); }}},
+					{'Edit':{icon: 'images/menus/edit.png', onclick: flux['edit']}},
+					{'Add sub-item':{icon: 'images/menus/add-child.png', onclick: function() { flux['add'](this.id, '', {position: 'under', edit: 1}); }}},
+					{'Add next':{icon: 'images/menus/add-sibling.png', onclick: function() { flux['add'](this.id, '', {position: 'after', edit: 1}); }}},
 					$.contextMenu.separator,
-					{'Promote':{icon: 'images/menus/promote.png', onclick: methods['promote']}},
-					{'Demote':{icon: 'images/menus/demote.png', onclick: methods['demote']}},
+					{'Promote':{icon: 'images/menus/promote.png', onclick: flux['promote']}},
+					{'Demote':{icon: 'images/menus/demote.png', onclick: flux['demote']}},
 					$.contextMenu.separator,
 					{'<div class="submenu-select"><div style="float:left;">Priority:</div> <img src="images/priorities/0.png" rel="0"/> <img src="images/priorities/1.png" rel="1"/> <img src="images/priorities/2.png" rel="2"/> <img src="images/priorities/3.png" rel="3"/> <img src="images/priorities/4.png" rel="4"/> <img src="images/priorities/5.png" rel="5"/></div><br>': function(m,c,e) {
-						methods['priority']($(this).attr('id'), $(e.target).attr('rel'));
+						flux['priority']($(this).attr('id'), $(e.target).attr('rel'));
 						return true;
 					}},
 					$.contextMenu.separator,
-					{'Remove':{icon: 'images/menus/remove.png', onclick: methods['remove']}},
+					{'Remove':{icon: 'images/menus/remove.png', onclick: flux['remove']}},
 				]
 			};
 
 			shortcut.add('tab', function() { // In-place demotion via tab
-				if (methods['edititem'])
-					methods['demote'](methods['edititem']);
+				if (flux['edititem'])
+					flux['demote'](flux['edititem']);
 			});
 			shortcut.add('shift+tab', function() { // In-place promotion via shift+tab
-				if (methods['edititem'])
-					methods['promote'](methods['edititem']);
+				if (flux['edititem'])
+					flux['promote'](flux['edititem']);
 			});
 			shortcut.add('escape', function() { // Escape edit mode
-				if (methods['edititem'])
-					methods['unedit'](methods['edititem']);
+				if (flux['edititem'])
+					flux['unedit'](flux['edititem']);
 			});
 			shortcut.add('down', function() { // Select next node for edit
-				if (methods['edititem'])
-					methods['editmove']('down');
+				if (flux['edititem'])
+					flux['editmove']('down');
 			});
 			shortcut.add('up', function() { // Select previous node for edit
-				if (methods['edititem'])
-					methods['editmove']('up');
+				if (flux['edititem'])
+					flux['editmove']('up');
 			});
 			shortcut.add('ctrl+up', function() { // Move priority up
-				if (methods['edititem'])
-					methods['priority'](methods['edititem'], 'up');
+				if (flux['edititem'])
+					flux['priority'](flux['edititem'], 'up');
 			});
 			shortcut.add('ctrl+down', function() { // Move priority down
-				if (methods['edititem'])
-					methods['priority'](methods['edititem'], 'down');
+				if (flux['edititem'])
+					flux['priority'](flux['edititem'], 'down');
 			});
 			shortcut.add('enter', function() { // Create new child
-				if (methods['edititem'])
-					var childid = methods['add'](methods['edititem'], '', {edit: 1});
+				if (flux['edititem'])
+					var childid = flux['add'](flux['edititem'], '', {edit: 1});
 			});
 
-			shortcut.add('f8', methods['server_push']); // Quick save
-			shortcut.add('f9', methods['server_pull']); // Quick load
+			shortcut.add('f8', flux['server_push']); // Quick save
+			shortcut.add('f9', flux['server_pull']); // Quick load
 
 			return this.each(function() {
 				$(this).empty();
@@ -120,7 +121,7 @@ $(function() {
 				edit: 0 // Open edit pane immediately after creation
 			}, options);
 			if (!opt['id']) // Assign unique ID if none
-				opt['id'] = 'flux-' + methods['nextid']++
+				opt['id'] = flux['_uniqueid']();
 			var parent = parent_id ? $('.flux #' + parent_id) : $(this);
 			var child = $('<div></div>');
 			if (opt['level'] == -1) { // Figure out the level
@@ -136,15 +137,15 @@ $(function() {
 				.addClass('nest-' + opt['level'])
 				.addClass('priority-' + opt['priority'])
 				.html(text)
-				.click(methods['edit'])
-				.contextMenu(methods['menus']['item'], methods['menus']['options']);
+				.click(flux['edit'])
+				.contextMenu(flux['menus']['item'], flux['menus']['options']);
 			if (parent_id) {
 				child.insertAfter(parent)
 			} else
-				child.appendTo(methods['master']);
-			methods['style'](opt['id']);
+				child.appendTo(flux['master']);
+			flux['style'](opt['id']);
 			if (opt['edit'])
-				methods['edit'](opt['id']);
+				flux['edit'](opt['id']);
 			return opt['id'];
 		},
 
@@ -235,19 +236,19 @@ $(function() {
 		*/
 		edit: function(id) {
 			var i = $( (typeof id == 'string') ? '.flux #' + id : this);
-			if (methods['edititem'] == i.attr('id')) // Trying to edit the same item twice
+			if (flux['edititem'] == i.attr('id')) // Trying to edit the same item twice
 				return;
-			if (methods['edititem']) { // Already editing - release first
-				methods['unedit'](methods['edititem']);
+			if (flux['edititem']) { // Already editing - release first
+				flux['unedit'](flux['edititem']);
 			}
 
 			var editpane = $('<div id="edit"></div');
-			methods['edititem'] = i.attr('id');
+			flux['edititem'] = i.attr('id');
 			var editbox = $('<input type="text" class="edit"/></div>')
-				.data('nodeid', methods['edititem'])
+				.data('nodeid', flux['edititem'])
 				.appendTo(editpane)
 				.val(i.text())
-				.blur(methods['unedit']);
+				.blur(flux['unedit']);
 			i
 				.addClass('editing')
 				.empty()
@@ -260,19 +261,19 @@ $(function() {
 		* param event|id id Either the event id of a jQuery callback OR the id of the item to un edit. If e is an event 'this' is used as the active item
 		*/
 		unedit: function(id) {
-			if (!methods['edititem']) // Not editing anyway
+			if (!flux['edititem']) // Not editing anyway
 				return;
 			var editbox = (typeof id == 'string') ? $('.flux #' + id + ' input') : $(this);
 			var newval = $.trim(editbox.val());
 			if (!newval) {
-				methods['remove'](methods['edititem']);
+				flux['remove'](flux['edititem']);
 			} else {
 				$('.flux #' + editbox.data('nodeid'))
 					.removeClass('editing')
 					.html(newval);
-				methods['style'](methods['edititem']);
+				flux['style'](flux['edititem']);
 			}
-			methods['edititem'] = 0;
+			flux['edititem'] = 0;
 		},
 
 		/**
@@ -280,18 +281,18 @@ $(function() {
 		* param string direction Either 'up' or 'down'
 		*/
 		editmove: function(dir) {
-			if (!methods['edititem']) // Not editing anyway
+			if (!flux['edititem']) // Not editing anyway
 				return;
-			var active = $('.flux #' + methods['edititem']);
+			var active = $('.flux #' + flux['edititem']);
 			var next;
 			switch(dir) {
 				case 'up':
 					if (active.index() > 0 && (next = $(active.siblings().eq(active.index()-1))) && next.length)
-						methods['edit'](next.attr('id'));
+						flux['edit'](next.attr('id'));
 					break;
 				case 'down':
 					if ((next = $(active.siblings().eq(active.index()))) && next.length)
-						methods['edit'](next.attr('id'));
+						flux['edit'](next.attr('id'));
 					break;
 			}
 		},
@@ -301,7 +302,7 @@ $(function() {
 		*/
 		server_push: function() {
 			var json = { nodes: {} };
-			$(methods['master']).find('div').each(function(i,e) {
+			$(flux['master']).find('div').each(function(i,e) {
 				var item = $(e);
 				json['nodes'][item.attr('id')] = {
 					'text': item.text(),
@@ -310,7 +311,7 @@ $(function() {
 				};
 			});
 			$.ajax({
-				url: methods['options']['server'],
+				url: flux['options']['server'],
 				dataType: 'json',
 				type: 'POST',
 				data: {json: JSON.stringify(json)},
@@ -327,55 +328,54 @@ $(function() {
 		* Ask the server for a new version of the JSON file
 		*/
 		server_pull: function() {
-			if (methods['edititem']) {
+			if (flux['edititem']) {
 				console.log('Cowardly refusing to refresh while the user is editing');
 				return;
 			}
 			$.ajax({
-				url: methods['options']['server'],
+				url: flux['options']['server'],
 				dataType: 'json',
 				type: 'POST',
 				success: function(json) {
-					$(methods['master']).empty();
+					$(flux['master']).empty();
 					$.each(json.nodes, function(id,e) {
 						console.log('DISCOVER ' + id);
-						methods['add'](0, e.text, {
+						flux['add'](0, e.text, {
 							id: id,
 							priority: e.priority,
 							level: e.level
 						});
 					});
-					if (methods['options']['server_refresh'] > 0)
-						setTimeout(methods['server_pull'], methods['options']['server_refresh']);
+					if (flux['options']['server_refresh'] > 0)
+						setTimeout(flux['server_pull'], flux['options']['server_refresh']);
 				},
 				error: function(e,xhr,exception) {
 					alert('Error while refreshing - ' + xhr.responseText + ' - ' + exception);
 				}
 			});
+		},
+
+		/**
+		* Get the next unique ID
+		* @return string The next unique ID that can be used for created items
+		*/
+		_uniqueid: function() {
+			var tryid;
+			while (1) {
+				tryid = flux['options']['idprefix'] + flux['nextid']++;
+				if ($('#' + tryid).length == 0)
+					return tryid;
+			}
 		}
 	};
 
 	$.fn.flux = function(method) {
-		if (methods[method]) {
-			return methods[ method ].apply(this, Array.prototype.slice.call(arguments, 1));
+		if (flux[method]) {
+			return flux[method].apply(this, Array.prototype.slice.call(arguments, 1));
 		} else if (typeof method === 'object' || ! method) {
-			return methods.init.apply(this, arguments);
+			return flux.init.apply(this, arguments);
 		} else {
-			$.error( 'Method ' +  method + ' does not exist on jQuery.tooltip' );
+			$.error('Method ' +  method + ' does not exist on for jQuery.FluxTasks');
 		}  
 	};
-	$('.flux').flux();
-	$('.flux').flux('add', 0, '!This is a heading');
-	$('.flux').flux('add', 0, 'Item 1');
-	$('.flux').flux('add', 0, 'Item 2');
-	$('.flux').flux('add', 0, 'Item 3', {id: 'i3'});
-	$('.flux').flux('add', 'i3', 'Item 3-a');
-	$('.flux').flux('add', 'i3', 'Item 3-b');
-	$('.flux').flux('add', 'i3', 'Item 3-c');
-	$('.flux').flux('add', 0, 'Item 4');
-	$('.flux').flux('add', 0, 'Item 5');
-	$('.flux').flux('add', 0, '-');
-	$('.flux').flux('add', 0, 'Item 1');
-	$('.flux').flux('add', 0, 'Item 2');
-	$('.flux').flux('add', 0, 'Item 3');
 });

@@ -10,6 +10,26 @@
 		<script type="text/javascript" src="js/jquery.contextmenu.js"></script>
 		<script type="text/javascript" src="js/shortcut.js"></script>
 		<script type="text/javascript" src="js/core.js"></script>
+		<script type="text/javascript">
+			$(function() {
+				$('.flux').flux(); // Apply the FluxTasks module to the '.flux' selector
+
+				// Populate the blank list with some dummy data
+				$('.flux').flux('add', 0, '!This is a heading');
+				$('.flux').flux('add', 0, 'Item 1');
+				$('.flux').flux('add', 0, 'Item 2');
+				$('.flux').flux('add', 0, 'Item 3', {id: 'i3'});
+				$('.flux').flux('add', 'i3', 'Item 3-a');
+				$('.flux').flux('add', 'i3', 'Item 3-b');
+				$('.flux').flux('add', 'i3', 'Item 3-c');
+				$('.flux').flux('add', 0, 'Item 4');
+				$('.flux').flux('add', 0, 'Item 5');
+				$('.flux').flux('add', 0, '-');
+				$('.flux').flux('add', 0, 'Item 1');
+				$('.flux').flux('add', 0, 'Item 2');
+				$('.flux').flux('add', 0, 'Item 3');
+			});
+		</script>
 	</head>
 	<body>
 		<div style="border: 1px solid black; margin: 20px">
