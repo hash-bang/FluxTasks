@@ -42,41 +42,44 @@ $(function() {
 				idprefix: 'flux-', // What prefix to use when randomly generating IDs
 				idselector: '.flux #', // What prefix to use when identifying an ID
 				server: 'php/file.php',
-				server_refresh: 0 // How often should data be loaded? Set to 0 to disable
+				server_refresh: 0, // How often should data be loaded? Set to 0 to disable
+				readonly: 0 // Dont allow any editing (implies turning off all shortcuts and editing events)
 			}, options);
 
 			flux['master'] = this;
 			$(this).empty();
-			flux['menus'] = { // Set up menus
-				options: {theme:'human'},
-				item: [
-					{'Edit':{icon: 'images/menus/edit.png', onclick: flux['edit']}},
-					{'Add sub-item':{icon: 'images/menus/add-child.png', onclick: function() { flux['add'](this.id, '', {position: 'under', edit: 1}); }}},
-					{'Add next':{icon: 'images/menus/add-sibling.png', onclick: function() { flux['add'](this.id, '', {position: 'after', edit: 1}); }}},
-					$.contextMenu.separator,
-					{'Promote':{icon: 'images/menus/promote.png', onclick: flux['promote']}},
-					{'Demote':{icon: 'images/menus/demote.png', onclick: flux['demote']}},
-					$.contextMenu.separator,
-					{'<div class="submenu-select"><div style="float:left;">Priority:</div> <img src="images/priorities/0.png" rel="0"/> <img src="images/priorities/1.png" rel="1"/> <img src="images/priorities/2.png" rel="2"/> <img src="images/priorities/3.png" rel="3"/> <img src="images/priorities/4.png" rel="4"/> <img src="images/priorities/5.png" rel="5"/></div><br>': function(m,c,e) {
-						flux['priority']($(this).attr('id'), $(e.target).attr('rel'));
-						return true;
-					}},
-					$.contextMenu.separator,
-					{'Remove':{icon: 'images/menus/remove.png', onclick: flux['remove']}},
-				]
-			};
+			if (!flux['options']['readonly']) { // Can edit...
+				flux['menus'] = { // Set up menus
+					options: {theme:'human'},
+					item: [
+						{'Edit':{icon: 'images/menus/edit.png', onclick: flux['edit']}},
+						{'Add sub-item':{icon: 'images/menus/add-child.png', onclick: function() { flux['add'](this.id, '', {position: 'under', edit: 1}); }}},
+						{'Add next':{icon: 'images/menus/add-sibling.png', onclick: function() { flux['add'](this.id, '', {position: 'after', edit: 1}); }}},
+						$.contextMenu.separator,
+						{'Promote':{icon: 'images/menus/promote.png', onclick: flux['promote']}},
+						{'Demote':{icon: 'images/menus/demote.png', onclick: flux['demote']}},
+						$.contextMenu.separator,
+						{'<div class="submenu-select"><div style="float:left;">Priority:</div> <img src="images/priorities/0.png" rel="0"/> <img src="images/priorities/1.png" rel="1"/> <img src="images/priorities/2.png" rel="2"/> <img src="images/priorities/3.png" rel="3"/> <img src="images/priorities/4.png" rel="4"/> <img src="images/priorities/5.png" rel="5"/></div><br>': function(m,c,e) {
+							flux['priority']($(this).attr('id'), $(e.target).attr('rel'));
+							return true;
+						}},
+						$.contextMenu.separator,
+						{'Remove':{icon: 'images/menus/remove.png', onclick: flux['remove']}},
+					]
+				};
 
-			shortcut.add('tab', function() { if (flux['edititem']) flux['demote'](flux['edititem']); }); // In-place demotion via tab
-			shortcut.add('shift+tab', function() { if (flux['edititem']) flux['promote'](flux['edititem']); }); // In-place promotion via shift+tab
-			shortcut.add('escape', function() { if (flux['edititem']) flux['unedit'](flux['edititem']); }); // Escape edit mode
-			shortcut.add('down', function() { if (flux['edititem']) flux['editmove']('down'); }); // Select next node for edit
-			shortcut.add('up', function() { if (flux['edititem']) flux['editmove']('up'); }); // Select previous node for edit
-			shortcut.add('ctrl+up', function() { if (flux['edititem']) flux['priority'](flux['edititem'], 'up'); }); // Move priority up
-			shortcut.add('ctrl+down', function() { if (flux['edititem']) flux['priority'](flux['edititem'], 'down'); }); // Move priority down
-			shortcut.add('enter', function() { if (flux['edititem']) var childid = flux['add'](flux['edititem'], '', {edit: 1}); }); // Create new child
+				shortcut.add('tab', function() { if (flux['edititem']) flux['demote'](flux['edititem']); }); // In-place demotion via tab
+				shortcut.add('shift+tab', function() { if (flux['edititem']) flux['promote'](flux['edititem']); }); // In-place promotion via shift+tab
+				shortcut.add('escape', function() { if (flux['edititem']) flux['unedit'](flux['edititem']); }); // Escape edit mode
+				shortcut.add('down', function() { if (flux['edititem']) flux['editmove']('down'); }); // Select next node for edit
+				shortcut.add('up', function() { if (flux['edititem']) flux['editmove']('up'); }); // Select previous node for edit
+				shortcut.add('ctrl+up', function() { if (flux['edititem']) flux['priority'](flux['edititem'], 'up'); }); // Move priority up
+				shortcut.add('ctrl+down', function() { if (flux['edititem']) flux['priority'](flux['edititem'], 'down'); }); // Move priority down
+				shortcut.add('enter', function() { if (flux['edititem']) var childid = flux['add'](flux['edititem'], '', {edit: 1}); }); // Create new child
 
-			shortcut.add('f8', flux['push']); // Quick save
-			shortcut.add('f9', flux['pull']); // Quick load
+				shortcut.add('f8', flux['push']); // Quick save
+				shortcut.add('f9', flux['pull']); // Quick load
+			}
 		},
 
 		/**
@@ -110,9 +113,11 @@ $(function() {
 				.attr('id', opt['id'])
 				.addClass('nest-' + opt['level'])
 				.addClass('priority-' + opt['priority'])
-				.html(text)
-				.click(flux['edit'])
-				.contextMenu(flux['menus']['item'], flux['menus']['options']);
+				.html(text);
+			if (!flux['options']['readonly'])
+				child
+					.click(flux['edit'])
+					.contextMenu(flux['menus']['item'], flux['menus']['options']);
 			if (parent_id) {
 				child.insertAfter(parent)
 			} else
