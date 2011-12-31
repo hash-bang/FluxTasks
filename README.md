@@ -1,6 +1,8 @@
 FluxTasks
 =========
 
+_FluxTasks is still under major development and is not recommended for release just yet - use at your own risk_
+
 FluxTasks is an infinitely flexible task and list management suite.
 
 It represents a simple component that you can integrate with your existing website to provide a simple (or complex) method of showing off hierarchical collections of items.
