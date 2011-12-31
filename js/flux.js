@@ -40,11 +40,13 @@ $(function() {
 		init: function(options) {
 			flux['options'] = $.extend({
 				idprefix: 'flux-', // What prefix to use when randomly generating IDs
+				idselector: '.flux #', // What prefix to use when identifying an ID
 				server: 'php/file.php',
 				server_refresh: 0 // How often should data be loaded? Set to 0 to disable
 			}, options);
 
 			flux['master'] = this;
+			$(this).empty();
 			flux['menus'] = { // Set up menus
 				options: {theme:'human'},
 				item: [
@@ -64,45 +66,17 @@ $(function() {
 				]
 			};
 
-			shortcut.add('tab', function() { // In-place demotion via tab
-				if (flux['edititem'])
-					flux['demote'](flux['edititem']);
-			});
-			shortcut.add('shift+tab', function() { // In-place promotion via shift+tab
-				if (flux['edititem'])
-					flux['promote'](flux['edititem']);
-			});
-			shortcut.add('escape', function() { // Escape edit mode
-				if (flux['edititem'])
-					flux['unedit'](flux['edititem']);
-			});
-			shortcut.add('down', function() { // Select next node for edit
-				if (flux['edititem'])
-					flux['editmove']('down');
-			});
-			shortcut.add('up', function() { // Select previous node for edit
-				if (flux['edititem'])
-					flux['editmove']('up');
-			});
-			shortcut.add('ctrl+up', function() { // Move priority up
-				if (flux['edititem'])
-					flux['priority'](flux['edititem'], 'up');
-			});
-			shortcut.add('ctrl+down', function() { // Move priority down
-				if (flux['edititem'])
-					flux['priority'](flux['edititem'], 'down');
-			});
-			shortcut.add('enter', function() { // Create new child
-				if (flux['edititem'])
-					var childid = flux['add'](flux['edititem'], '', {edit: 1});
-			});
+			shortcut.add('tab', function() { if (flux['edititem']) flux['demote'](flux['edititem']); }); // In-place demotion via tab
+			shortcut.add('shift+tab', function() { if (flux['edititem']) flux['promote'](flux['edititem']); }); // In-place promotion via shift+tab
+			shortcut.add('escape', function() { if (flux['edititem']) flux['unedit'](flux['edititem']); }); // Escape edit mode
+			shortcut.add('down', function() { if (flux['edititem']) flux['editmove']('down'); }); // Select next node for edit
+			shortcut.add('up', function() { if (flux['edititem']) flux['editmove']('up'); }); // Select previous node for edit
+			shortcut.add('ctrl+up', function() { if (flux['edititem']) flux['priority'](flux['edititem'], 'up'); }); // Move priority up
+			shortcut.add('ctrl+down', function() { if (flux['edititem']) flux['priority'](flux['edititem'], 'down'); }); // Move priority down
+			shortcut.add('enter', function() { if (flux['edititem']) var childid = flux['add'](flux['edititem'], '', {edit: 1}); }); // Create new child
 
-			shortcut.add('f8', flux['server_push']); // Quick save
-			shortcut.add('f9', flux['server_pull']); // Quick load
-
-			return this.each(function() {
-				$(this).empty();
-			});
+			shortcut.add('f8', flux['push']); // Quick save
+			shortcut.add('f9', flux['pull']); // Quick load
 		},
 
 		/**
@@ -122,7 +96,7 @@ $(function() {
 			}, options);
 			if (!opt['id']) // Assign unique ID if none
 				opt['id'] = flux['_uniqueid']();
-			var parent = parent_id ? $('.flux #' + parent_id) : $(this);
+			var parent = parent_id ? $(flux['options']['idselector'] + parent_id) : $(this);
 			var child = $('<div></div>');
 			if (opt['level'] == -1) { // Figure out the level
 				if (parent_id) { // From the parent?
@@ -154,7 +128,7 @@ $(function() {
 		* @param string The ID of the item to style
 		*/
 		style: function(id) {
-			var item = $('.flux #' + id);
+			var item = $(flux['options']['idselector'] + id);
 			var itext = item.text();
 			item.removeClass('style-heading style-spacer');
 			if (itext == '-') {
@@ -171,7 +145,7 @@ $(function() {
 		* param event|id id Either the event id of a jQuery callback OR the id of the item to remove. If e is an event 'this' is used as the active item
 		*/
 		remove: function(id) {
-			var item = $( (typeof id == 'string') ? '.flux #' + id : this);
+			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
 			item.remove();
 		},
 
@@ -180,7 +154,7 @@ $(function() {
 		* param event|id id Either the event id of a jQuery callback OR the id of the item to demote. If e is an event 'this' is used as the active item
 		*/
 		demote: function(id) {
-			var item = $( (typeof id == 'string') ? '.flux #' + id : this);
+			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
 			// FIXME: Check this is eligable to be a child (e.g. not first in list)
 			var thislevel = item.data('level');
 			var newlevel = Number(item.data('level'))+1;
@@ -196,7 +170,7 @@ $(function() {
 		* param event|id id Either the event id of a jQuery callback OR the id of the item to promote. If e is an event 'this' is used as the active item
 		*/
 		promote: function(id) {
-			var item = $( (typeof id == 'string') ? '.flux #' + id : this);
+			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
 			var thislevel = item.data('level');
 			var newlevel = Number(item.data('level'))-1;
 			console.log('PROMOTE! ID: ' + item.attr('id') + ', LVL: ' + thislevel + ', NLVL:' + newlevel);
@@ -213,7 +187,7 @@ $(function() {
 		* param int|string value Either values 0-5, 'up' or 'down'
 		*/
 		priority: function(id, value) {
-			var item = $( (typeof id == 'string') ? $('.flux #' + id) : this);
+			var item = $( (typeof id == 'string') ? $(flux['options']['idselector'] + id) : this);
 			var newpri = -1;
 			if (value >= 0 && value <= 5 && value != item.data('priority')) {
 				newpri = value;
@@ -235,21 +209,21 @@ $(function() {
 		* param event|id id Either the event id of a jQuery callback OR the id of the item to edit. If e is an event 'this' is used as the active item
 		*/
 		edit: function(id) {
-			var i = $( (typeof id == 'string') ? '.flux #' + id : this);
-			if (flux['edititem'] == i.attr('id')) // Trying to edit the same item twice
+			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
+			if (flux['edititem'] == item.attr('id')) // Trying to edit the same item twice
 				return;
 			if (flux['edititem']) { // Already editing - release first
 				flux['unedit'](flux['edititem']);
 			}
 
 			var editpane = $('<div id="edit"></div');
-			flux['edititem'] = i.attr('id');
+			flux['edititem'] = item.attr('id');
 			var editbox = $('<input type="text" class="edit"/></div>')
 				.data('nodeid', flux['edititem'])
 				.appendTo(editpane)
-				.val(i.text())
+				.val(item.text())
 				.blur(flux['unedit']);
-			i
+			item
 				.addClass('editing')
 				.empty()
 				.append(editpane);
@@ -263,12 +237,12 @@ $(function() {
 		unedit: function(id) {
 			if (!flux['edititem']) // Not editing anyway
 				return;
-			var editbox = (typeof id == 'string') ? $('.flux #' + id + ' input') : $(this);
+			var editbox = (typeof id == 'string') ? $(flux['options']['idselector'] + id + ' input') : $(this);
 			var newval = $.trim(editbox.val());
 			if (!newval) {
 				flux['remove'](flux['edititem']);
 			} else {
-				$('.flux #' + editbox.data('nodeid'))
+				$(flux['options']['idselector'] + editbox.data('nodeid'))
 					.removeClass('editing')
 					.html(newval);
 				flux['style'](flux['edititem']);
@@ -283,7 +257,7 @@ $(function() {
 		editmove: function(dir) {
 			if (!flux['edititem']) // Not editing anyway
 				return;
-			var active = $('.flux #' + flux['edititem']);
+			var active = $(flux['options']['idselector'] + flux['edititem']);
 			var next;
 			switch(dir) {
 				case 'up':
@@ -300,7 +274,7 @@ $(function() {
 		/**
 		* Store this JSON file on the server
 		*/
-		server_push: function() {
+		push: function() {
 			var json = { nodes: {} };
 			$(flux['master']).find('div').each(function(i,e) {
 				var item = $(e);
@@ -327,7 +301,7 @@ $(function() {
 		/**
 		* Ask the server for a new version of the JSON file
 		*/
-		server_pull: function() {
+		pull: function() {
 			if (flux['edititem']) {
 				console.log('Cowardly refusing to refresh while the user is editing');
 				return;
@@ -347,7 +321,7 @@ $(function() {
 						});
 					});
 					if (flux['options']['server_refresh'] > 0)
-						setTimeout(flux['server_pull'], flux['options']['server_refresh']);
+						setTimeout(flux['pull'], flux['options']['server_refresh']);
 				},
 				error: function(e,xhr,exception) {
 					alert('Error while refreshing - ' + xhr.responseText + ' - ' + exception);
