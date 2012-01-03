@@ -51,6 +51,14 @@ $(function() {
 			if (!flux['options']['readonly']) { // Can edit...
 				flux['menus'] = { // Set up menus
 					options: {theme:'human'},
+					priorities: [
+						{'No priority':{icon: 'images/priorities/0.png', onclick: function() { flux['priority'](this.attr('id'), 0); }}},
+						{'Lowest priority':{icon: 'images/priorities/1.png', onclick: function() { flux['priority'](this.attr('id'), 1); }}},
+						{'Low priority':{icon: 'images/priorities/2.png', onclick: function() { flux['priority'](this.attr('id'), 2); }}},
+						{'Medium priority':{icon: 'images/priorities/3.png', onclick: function() { flux['priority'](this.attr('id'), 3); }}},
+						{'High priority':{icon: 'images/priorities/4.png', onclick: function() { flux['priority'](this.attr('id'), 4); }}},
+						{'Highest priority':{icon: 'images/priorities/5.png', onclick: function() { flux['priority'](this.attr('id'), 5); }}}
+					],
 					item: [
 						{'Edit':{icon: 'images/menus/edit.png', onclick: flux['edit']}},
 						{'Add sub-item':{icon: 'images/menus/add-child.png', onclick: function() { flux['add'](this.id, '', {position: 'under', edit: 1}); }}},
@@ -100,7 +108,7 @@ $(function() {
 			if (!opt['id']) // Assign unique ID if none
 				opt['id'] = flux['_uniqueid']();
 			var parent = parent_id ? $(flux['options']['idselector'] + parent_id) : $(this);
-			var child = $('<div></div>');
+			var child = $('<div class="flux-node"/>');
 			if (opt['level'] == -1) { // Figure out the level
 				if (parent_id) { // From the parent?
 					opt['level'] = parent.data('level') + (opt['position'] == 'under' ? 1 : 0);
@@ -113,7 +121,7 @@ $(function() {
 				.attr('id', opt['id'])
 				.addClass('nest-' + opt['level'])
 				.addClass('priority-' + opt['priority'])
-				.html(text);
+				.html(flux['_construct'](child, text));
 			if (!flux['options']['readonly'])
 				child
 					.click(flux['edit'])
@@ -134,15 +142,23 @@ $(function() {
 		*/
 		style: function(id) {
 			var item = $(flux['options']['idselector'] + id);
-			var itext = item.text();
+			var itext = item.find('.flux-title').text();
 			item.removeClass('style-heading style-spacer');
 			if (itext == '-') {
 				item.addClass('style-spacer');
-				item.html('<span>-</span>');
+				item.find('.flux-title').html('<span>-</span>');
 			} else if (itext.substr(0,1) == '!') {
-				item.html('<span>!</span>' + itext.substr(1));
 				item.addClass('style-heading');
+				item.find('.flux-title').html('<span>!</span>' + itext.substr(1));
 			}
+		},
+
+		/**
+		* Construct the HTML of a list item
+		*/
+		_construct: function(node, title) {
+			var priority = node.data('priority');
+			return '<div class="flux-priority">' + (priority > 0 ? '<img src="images/priorities/' + priority + '.png"/>' : '') + '</div><div class="flux-title">' + title + '</div><div class="flux-date">tomorrow</div>';
 		},
 
 		/**
@@ -207,6 +223,7 @@ $(function() {
 				.removeClass('priority-' + item.data('priority'))
 				.addClass('priority-' + newpri)
 				.data('priority', newpri);
+			item.find('.flux-priority').html(newpri > 0 ? '<img src="images/priorities/' + newpri + '.png"/>' : '');
 		},
 
 		/**
@@ -226,7 +243,7 @@ $(function() {
 			var editbox = $('<input type="text" class="edit"/></div>')
 				.data('nodeid', flux['edititem'])
 				.appendTo(editpane)
-				.val(item.text())
+				.val(item.find('.flux-title').text())
 				.blur(flux['unedit']);
 			item
 				.addClass('editing')
@@ -247,9 +264,9 @@ $(function() {
 			if (!newval) {
 				flux['remove'](flux['edititem']);
 			} else {
-				$(flux['options']['idselector'] + editbox.data('nodeid'))
-					.removeClass('editing')
-					.html(newval);
+				var item = $(flux['options']['idselector'] + editbox.data('nodeid'));
+				item.removeClass('editing');
+				item.html(flux['_construct'](item, newval));
 				flux['style'](flux['edititem']);
 			}
 			flux['edititem'] = 0;

@@ -35,6 +35,35 @@
 	background: #E4E8E7 !important;
 }
 
+/* General flux table cells */
+.flux {
+}
+
+.flux .flux-node {
+	display: table-row;
+	width: 100%;
+}
+
+.flux .flux-node > * {
+	display: table-cell;
+	height: 20px;
+}
+
+.flux .flux-node .flux-priority {
+	width: 20px !important;
+	float: left;
+	vertical-align: middle;
+}
+
+.flux .flux-node .flux-title {
+	padding-left: 5px;
+	width: 100%;
+}
+
+.flux .flux-node .flux-date {
+	width: 150px;
+}
+
 /* Styles */
 .flux span { /* Always hide spans since this is where we cram hidden data about the node */
 	display: none;
@@ -44,11 +73,9 @@
 	font-weight: bold;
 	font-size: 15pt;
 	margin: 8px 0 4px;
-	display: block !important;
 }
 
 .flux .style-spacer {
-	display: block !important;
 }
 
 /* Priorities */
@@ -59,50 +86,38 @@
 .flux .priority-0 {
 }
 .flux .priority-1 {
-	background: url('images/priorities/1.png') no-repeat top left;
 }
 .flux .priority-2 {
-	background: url('images/priorities/2.png') no-repeat top left;
 }
 .flux .priority-3 {
-	background: url('images/priorities/3.png') no-repeat top left;
 }
 .flux .priority-4 {
-	background: url('images/priorities/4.png') no-repeat top left;
 }
 .flux .priority-5 {
-	background: url('images/priorities/5.png') no-repeat top left;
 }
 
 /* Nesting levels */
-.flux .nest-0 {
-	display: list-item;
+.flux .flux-title {
+}
+
+.flux .nest-0 .flux-title {
 	text-indent: 0px;
-	list-style: disc inside none;
 }
 
-.flux .nest-1 {
-	display: list-item;
+.flux .nest-1 .flux-title {
 	text-indent: 20px;
-	list-style: circle inside none;
 }
 
-.flux .nest-2 {
-	display: list-item;
+.flux .nest-2 .flux-title {
 	text-indent: 40px;
-	list-style: circle inside none;
 }
 
-.flux .nest-3 {
-	display: list-item;
+.flux .nest-3 .flux-title {
 	text-indent: 80px;
-	list-style: circle inside none;
 }
 
-.flux .nest-4 {
-	display: list-item;
+.flux .nest-4 .flux-title {
 	text-indent: 100px;
-	list-style: circle outside none;
 }
 
 
