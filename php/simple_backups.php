@@ -9,7 +9,7 @@
 * Data restoration is left as an excersize for the SysAdmin. Be nice to him - he knows Linux.
 */
 
-define('FLUX_DIR', '.'); // Directory to save our sessions to - must be writable (by default this saves to _this_ script directory)
+define('FLUX_DIR', 'storage'); // Directory to save our sessions to - must be writable (by default this saves to _this_ script directory)
 define('FLUX_MAX_SAVES', 100); // Maximum number of versions to save in FLUX_DIR. 0 is infinate. The higher this number the more your file system will bog down. Only set this to something high (or god help us - 0) if you understand the implications.
 
 if (isset($_POST['json'])) { // Wanting to store some data (i.e. SAVE)

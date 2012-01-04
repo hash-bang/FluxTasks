@@ -10,7 +10,7 @@
 * REPEAT: Do *NOT* use this file in a production system.
 */
 
-define('FLUX_FILE', 'flux.json'); // File to save our session to - must be writable
+define('FLUX_FILE', 'storage/flux.json'); // File to save our session to - must be writable
 
 if (isset($_POST['json'])) { // Wanting to store some data (i.e. SAVE)
 	if (! $json = json_decode($_POST['json'])) // Sanity check that it can be parsed
