@@ -32,50 +32,25 @@ $(function() {
 		* @var array
 		* @access private
 		*/
-		options: {},
+		options: {
+			idprefix: 'flux-', // What prefix to use when randomly generating IDs
+			idselector: '.flux #', // What prefix to use when identifying an ID
+			server: 'php/file.php',
+			server_refresh: 0, // How often should data be loaded? Set to 0 to disable
+			image_path: 'flux/images/', // Location of image files. Must end in '/'
+			readonly: 0 // Dont allow any editing (implies turning off all shortcuts and editing events)
+		},
 
 		/**
 		* Initalize Flux
 		*/
 		init: function(options) {
-			flux['options'] = $.extend({
-				idprefix: 'flux-', // What prefix to use when randomly generating IDs
-				idselector: '.flux #', // What prefix to use when identifying an ID
-				server: 'php/file.php',
-				server_refresh: 0, // How often should data be loaded? Set to 0 to disable
-				readonly: 0 // Dont allow any editing (implies turning off all shortcuts and editing events)
-			}, options);
+			flux['options'] = $.extend(flux['options'], options);
 
 			flux['master'] = this;
 			$(this).empty();
 			if (!flux['options']['readonly']) { // Can edit...
-				flux['menus'] = { // Set up menus
-					options: {theme:'human'},
-					priorities: [
-						{'No priority':{icon: 'images/priorities/0.png', onclick: function() { flux['priority'](this.attr('id'), 0); }}},
-						{'Lowest priority':{icon: 'images/priorities/1.png', onclick: function() { flux['priority'](this.attr('id'), 1); }}},
-						{'Low priority':{icon: 'images/priorities/2.png', onclick: function() { flux['priority'](this.attr('id'), 2); }}},
-						{'Medium priority':{icon: 'images/priorities/3.png', onclick: function() { flux['priority'](this.attr('id'), 3); }}},
-						{'High priority':{icon: 'images/priorities/4.png', onclick: function() { flux['priority'](this.attr('id'), 4); }}},
-						{'Highest priority':{icon: 'images/priorities/5.png', onclick: function() { flux['priority'](this.attr('id'), 5); }}}
-					],
-					item: [
-						{'Edit':{icon: 'images/menus/edit.png', onclick: flux['edit']}},
-						{'Add sub-item':{icon: 'images/menus/add-child.png', onclick: function() { flux['add'](this.id, '', {position: 'under', edit: 1}); }}},
-						{'Add next':{icon: 'images/menus/add-sibling.png', onclick: function() { flux['add'](this.id, '', {position: 'after', edit: 1}); }}},
-						$.contextMenu.separator,
-						{'Promote':{icon: 'images/menus/promote.png', onclick: flux['promote']}},
-						{'Demote':{icon: 'images/menus/demote.png', onclick: flux['demote']}},
-						$.contextMenu.separator,
-						{'<div class="submenu-select"><div style="float:left;">Priority:</div> <img src="images/priorities/0.png" rel="0"/> <img src="images/priorities/1.png" rel="1"/> <img src="images/priorities/2.png" rel="2"/> <img src="images/priorities/3.png" rel="3"/> <img src="images/priorities/4.png" rel="4"/> <img src="images/priorities/5.png" rel="5"/></div><br>': function(m,c,e) {
-							flux['priority']($(this).attr('id'), $(e.target).attr('rel'));
-							return true;
-						}},
-						$.contextMenu.separator,
-						{'Remove':{icon: 'images/menus/remove.png', onclick: flux['remove']}},
-					]
-				};
-
+				// Shortcut keys
 				shortcut.add('tab', function() { if (flux['edititem']) flux['demote'](flux['edititem']); }); // In-place demotion via tab
 				shortcut.add('shift+tab', function() { if (flux['edititem']) flux['promote'](flux['edititem']); }); // In-place promotion via shift+tab
 				shortcut.add('escape', function() { if (flux['edititem']) flux['unedit'](flux['edititem']); }); // Escape edit mode
@@ -87,6 +62,34 @@ $(function() {
 
 				shortcut.add('f8', flux['push']); // Quick save
 				shortcut.add('f9', flux['pull']); // Quick load
+
+				// Menus
+				$.contextMenu({
+					selector: '.flux .flux-node', 
+					callback: function(key, options) {
+					    var m = "clicked: " + key;
+					    window.console && console.log(m) || alert(m); 
+					},
+					items: {
+						"edit": {name: "Edit", icon: "edit", callback: function() { flux['edit']($(this).attr('id')) }},
+						"add-child": {name: "Add sub-item", icon: "add-child", callback: function() { flux['add']($(this).attr('id'), '', {position: 'under', edit: 1}) }},
+						"add-next": {name: "Add next", icon: "add-next", callback: function() { flux['add']($(this).attr('id'), '', {position: 'after', edit: 1}) }},
+						"sep1": "---------",
+						"promote": {name: "Promote", icon: "promote", callback: function() { flux['promote']($(this).attr('id')) }},
+						"demote": {name: "Demote", icon: "demote", callback: function() { flux['demote']($(this).attr('id')) }},
+						"sep2": "---------",
+						"priority": {name: "Set priority", items: {
+							"priority-0": {name: 'No priority', icon: 'priority-0', callback: function() { flux['priority']($(this).attr('id'), 0) }},
+							"priority-sep": "---------",
+							"priority-5": {name: 'Highest priority', icon: 'priority-5', callback: function() { flux['priority']($(this).attr('id'), 5) }},
+							"priority-4": {name: 'High priority', icon: 'priority-4', callback: function() { flux['priority']($(this).attr('id'), 4) }},
+							"priority-3": {name: 'Normal priority', icon: 'priority-3', callback: function() { flux['priority']($(this).attr('id'), 3) }},
+							"priority-2": {name: 'Low priority', icon: 'priority-2', callback: function() { flux['priority']($(this).attr('id'), 2) }},
+							"priority-1": {name: 'Lowest priority', icon: 'priority-1', callback: function() { flux['priority']($(this).attr('id'), 1) }},
+						}},
+						"remove": {name: "Remove", icon: "remove", callback: function() { flux['remove']($(this).attr('id')) }},
+					}
+				});
 			}
 		},
 
@@ -123,9 +126,7 @@ $(function() {
 				.addClass('priority-' + opt['priority'])
 				.html(flux['_construct'](child, text));
 			if (!flux['options']['readonly'])
-				child
-					.click(flux['edit'])
-					.contextMenu(flux['menus']['item'], flux['menus']['options']);
+				child.click(function(){flux['edit']($(this).attr('id'));});
 			if (parent_id) {
 				child.insertAfter(parent)
 			} else
@@ -158,24 +159,23 @@ $(function() {
 		*/
 		_construct: function(node, title) {
 			var priority = node.data('priority');
-			return '<div class="flux-priority">' + (priority > 0 ? '<img src="images/priorities/' + priority + '.png"/>' : '') + '</div><div class="flux-title">' + title + '</div><div class="flux-date">tomorrow</div>';
+			return '<div class="flux-priority">' + (priority > 0 ? '<img src="' + flux['options']['image_path'] + 'priorities/' + priority + '.png"/>' : '') + '</div><div class="flux-title">' + title + '</div><div class="flux-date">tomorrow</div>';
 		},
 
 		/**
 		* Remove a given node by its ID
-		* param event|id id Either the event id of a jQuery callback OR the id of the item to remove. If e is an event 'this' is used as the active item
+		* param string id The id of the item to remove
 		*/
 		remove: function(id) {
-			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
-			item.remove();
+			$(flux['options']['idselector'] + id).remove();
 		},
 
 		/**
 		* Demote a given node
-		* param event|id id Either the event id of a jQuery callback OR the id of the item to demote. If e is an event 'this' is used as the active item
+		* param string id The id of the item to demote
 		*/
 		demote: function(id) {
-			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
+			var item = $(flux['options']['idselector'] + id);
 			// FIXME: Check this is eligable to be a child (e.g. not first in list)
 			var thislevel = item.data('level');
 			var newlevel = Number(item.data('level'))+1;
@@ -188,10 +188,10 @@ $(function() {
 
 		/**
 		* Promote a given node
-		* param event|id id Either the event id of a jQuery callback OR the id of the item to promote. If e is an event 'this' is used as the active item
+		* param string id The item to promote
 		*/
 		promote: function(id) {
-			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
+			var item = $(flux['options']['idselector'] + id);
 			var thislevel = item.data('level');
 			var newlevel = Number(item.data('level'))-1;
 			console.log('PROMOTE! ID: ' + item.attr('id') + ', LVL: ' + thislevel + ', NLVL:' + newlevel);
@@ -204,11 +204,11 @@ $(function() {
 
 		/**
 		* Assign the priority of a given node
-		* param event|id id Either the event id of a jQuery callback OR the id of the item to adjust the priority of. If e is an event 'this' is used as the active item
+		* param string id The id of the item to adjust the priority of
 		* param int|string value Either values 0-5, 'up' or 'down'
 		*/
 		priority: function(id, value) {
-			var item = $( (typeof id == 'string') ? $(flux['options']['idselector'] + id) : this);
+			var item = $(flux['options']['idselector'] + id);
 			var newpri = -1;
 			if (value >= 0 && value <= 5 && value != item.data('priority')) {
 				newpri = value;
@@ -223,15 +223,15 @@ $(function() {
 				.removeClass('priority-' + item.data('priority'))
 				.addClass('priority-' + newpri)
 				.data('priority', newpri);
-			item.find('.flux-priority').html(newpri > 0 ? '<img src="images/priorities/' + newpri + '.png"/>' : '');
+			item.find('.flux-priority').html(newpri > 0 ? '<img src="' + flux['options']['image_path'] + 'priorities/' + newpri + '.png"/>' : '');
 		},
 
 		/**
 		* Edit a given item
-		* param event|id id Either the event id of a jQuery callback OR the id of the item to edit. If e is an event 'this' is used as the active item
+		* param string id The id of the item to edit
 		*/
 		edit: function(id) {
-			var item = $( (typeof id == 'string') ? flux['options']['idselector'] + id : this);
+			var item = $(flux['options']['idselector'] + id);
 			if (flux['edititem'] == item.attr('id')) // Trying to edit the same item twice
 				return;
 			if (flux['edititem']) { // Already editing - release first
@@ -240,33 +240,30 @@ $(function() {
 
 			var editpane = $('<div id="edit"></div');
 			flux['edititem'] = item.attr('id');
-			var editbox = $('<input type="text" class="edit"/></div>')
-				.data('nodeid', flux['edititem'])
+			var editbox = $('<input type="text" class="edit"/>');
+			editbox
 				.appendTo(editpane)
 				.val(item.find('.flux-title').text())
 				.blur(flux['unedit']);
-			item
-				.addClass('editing')
-				.empty()
-				.append(editpane);
+			item.addClass('editing');
+			item.find('.flux-title').html(editpane);
 			editbox.focus();
 		},
 
 		/**
 		* Release edit mode
-		* param event|id id Either the event id of a jQuery callback OR the id of the item to un edit. If e is an event 'this' is used as the active item
 		*/
-		unedit: function(id) {
+		unedit: function() {
 			if (!flux['edititem']) // Not editing anyway
 				return;
-			var editbox = (typeof id == 'string') ? $(flux['options']['idselector'] + id + ' input') : $(this);
+			var editbox = $(flux['options']['idselector'] + flux['edititem'] + ' .flux-title input');
 			var newval = $.trim(editbox.val());
 			if (!newval) {
 				flux['remove'](flux['edititem']);
 			} else {
-				var item = $(flux['options']['idselector'] + editbox.data('nodeid'));
+				var item = $(flux['options']['idselector'] + flux['edititem']);
 				item.removeClass('editing');
-				item.html(flux['_construct'](item, newval));
+				item.find('.flux-title').html(newval);
 				flux['style'](flux['edititem']);
 			}
 			flux['edititem'] = 0;
