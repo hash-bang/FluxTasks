@@ -15,13 +15,6 @@ $(function() {
 		nextid: 0,
 		
 		/**
-		* Menu cache used by jquery.contextmenu
-		* @var array
-		* @access private
-		*/
-		menus: {},
-
-		/**
 		* The item id currently being edited by the user
 		* @access private
 		*/
@@ -62,14 +55,11 @@ $(function() {
 
 				shortcut.add('f8', flux['push']); // Quick save
 				shortcut.add('f9', flux['pull']); // Quick load
+				shortcut.add('f2', flux['_checktree']); // FIXME: Debugging
 
 				// Menus
 				$.contextMenu({
 					selector: '.flux .flux-node', 
-					callback: function(key, options) {
-					    var m = "clicked: " + key;
-					    window.console && console.log(m) || alert(m); 
-					},
 					items: {
 						"edit": {name: "Edit", icon: "edit", callback: function() { flux['edit']($(this).attr('id')) }},
 						"add-child": {name: "Add sub-item", icon: "add-child", callback: function() { flux['add']($(this).attr('id'), '', {position: 'under', edit: 1}) }},
@@ -114,7 +104,11 @@ $(function() {
 			var child = $('<div class="flux-node"/>');
 			if (opt['level'] == -1) { // Figure out the level
 				if (parent_id) { // From the parent?
-					opt['level'] = parent.data('level') + (opt['position'] == 'under' ? 1 : 0);
+					if (opt['position'] == 'under') {
+						opt['level'] = parent.data('level') + 1;
+						flux['_setbranch'](parent.attr('id'), 1);
+					} else
+						opt['level'] = parent.data('level');
 				} else
 					opt['level'] = 0;
 			}
@@ -125,6 +119,7 @@ $(function() {
 				.addClass('nest-' + opt['level'])
 				.addClass('priority-' + opt['priority'])
 				.html(flux['_construct'](child, text));
+			flux['_setbranch'](child, 0);
 			if (!flux['options']['readonly'])
 				child.click(function(){flux['edit']($(this).attr('id'));});
 			if (parent_id) {
@@ -135,6 +130,36 @@ $(function() {
 			if (opt['edit'])
 				flux['edit'](opt['id']);
 			return opt['id'];
+		},
+
+		/**
+		* Set whether a given node is actually a branch
+		* @param string|obj id Either the ID of the object to set the branch state of or the jQuery object
+		* @param bool state The boolean status of whether this item is a branch
+		*/
+		_setbranch: function(id, state) {
+			var item = (typeof id == 'object') ? id : $(flux['options']['idselector'] + id);
+			if (state) {
+				item.addClass('flux-branch');
+				item.removeClass('flux-leaf');
+			} else {
+				item.addClass('flux-leaf');
+				item.removeClass('flux-branch');
+			}
+		},
+
+		/**
+		* Recheck the entire tree struture for branches
+		*/
+		_checktree: function() {
+			var lastlevel = 0;
+			var lastobj;
+			flux['master'].find('.flux-node').each(function(i,o) {
+				var obj = $(o);
+				flux['_setbranch'](lastobj, obj.data('level') > lastlevel)
+				lastlevel = obj.data('level');
+				lastobj = obj;
+			});
 		},
 
 		/**
@@ -159,7 +184,12 @@ $(function() {
 		*/
 		_construct: function(node, title) {
 			var priority = node.data('priority');
-			return '<div class="flux-priority">' + (priority > 0 ? '<img src="' + flux['options']['image_path'] + 'priorities/' + priority + '.png"/>' : '') + '</div><div class="flux-title">' + title + '</div><div class="flux-date">tomorrow</div>';
+			var leveling = '';
+			var level = node.data('level');
+			for (var l = 1; l < level + 1; l++) {
+				leveling += '<div class="flux-bullet-nest-' + l + '"></div>';
+			}
+			return '<div class="flux-priority">' + (priority > 0 ? '<img src="' + flux['options']['image_path'] + 'priorities/' + priority + '.png"/>' : '') + '</div><div class="flux-main">' + leveling + '<div class="flux-bullet"></div><div class="flux-title">' + title + '</div></div><div class="flux-date"></div>';
 		},
 
 		/**
@@ -168,6 +198,7 @@ $(function() {
 		*/
 		remove: function(id) {
 			$(flux['options']['idselector'] + id).remove();
+			flux['_checktree']();
 		},
 
 		/**
@@ -341,6 +372,7 @@ $(function() {
 					});
 					if (flux['options']['server_refresh'] > 0)
 						setTimeout(flux['pull'], flux['options']['server_refresh']);
+					flux['_checktree']();
 				},
 				error: function(e,xhr,exception) {
 					alert('Error while refreshing - ' + xhr.responseText + ' - ' + exception);

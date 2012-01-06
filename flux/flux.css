@@ -26,13 +26,15 @@
 .flux .editing {
 }
 
-.flux .editing #edit {
-	padding: 2px;
-	margin-left: -4px;
-	margin-top: -3px;
+.flux .editing {
 	border: 1px solid #989E9F;
 	border-radius: 15px;
 	background: #E4E8E7 !important;
+}
+
+.flux .editing #edit input {
+	position: relative;
+	left: -1px;
 }
 
 /* General flux table cells */
@@ -46,22 +48,43 @@
 
 .flux .flux-node > * {
 	display: table-cell;
-	height: 20px;
 }
 
 .flux .flux-node .flux-priority {
 	width: 20px !important;
-	float: left;
 	vertical-align: middle;
 }
 
-.flux .flux-node .flux-title {
+.flux .flux-node .flux-main {
 	padding-left: 5px;
 	width: 100%;
 }
 
 .flux .flux-node .flux-date {
 	width: 150px;
+}
+
+.flux .flux-branch {} /* This node is a parent */
+}
+
+.flux .flux-leaf {} /* This node is not a parent */
+
+.flux .flux-leaf .flux-bullet {
+	display: none;
+}
+
+.flux .flux-bullet {
+	float: left;
+	width: 20px;
+	height: 20px;
+	background: url('images/branch-open.png') no-repeat;
+}
+
+.flux .flux-bullet-nest-1, .flux .flux-bullet-nest-2, .flux .flux-bullet-nest-3, .flux .flux-bullet-nest-4, .flux .flux-bullet-nest-5  {
+	float: left;
+	width: 20px;
+	height: 20px;
+	background: url('images/branch-line.png') repeat-y;
 }
 
 /* Styles */
@@ -97,29 +120,25 @@
 }
 
 /* Nesting levels */
-.flux .flux-title {
-}
-
-.flux .nest-0 .flux-title {
-	text-indent: 0px;
+/*.flux .nest-0 .flux-title {
+	padding-left: 0px;
 }
 
 .flux .nest-1 .flux-title {
-	text-indent: 20px;
+	padding-left: 20px;
 }
 
 .flux .nest-2 .flux-title {
-	text-indent: 40px;
+	padding-left: 40px;
 }
 
 .flux .nest-3 .flux-title {
-	text-indent: 80px;
+	padding-left: 80px;
 }
 
 .flux .nest-4 .flux-title {
-	text-indent: 100px;
-}
-
+	padding-left: 100px;
+}*/
 
 /* Context menu fixes */
 .submenu-select img {
